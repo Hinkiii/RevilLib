@@ -114,7 +114,7 @@ auto ReadARC(BinReaderRef_e rd) {
     throw es::InvalidHeaderError(hdr.id);
   }
 
-  if (!hdr.IsLZX()) {
+  if (hdr.version < 0x10 || hdr.IsLZX()) {
     rd.Skip(-4);
   }
 
