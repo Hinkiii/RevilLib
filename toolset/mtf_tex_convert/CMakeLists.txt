@@ -6,7 +6,7 @@ build_target(
   TYPE
   ESMODULE
   VERSION
-  1
+  2
   SOURCES
   tex_convert.cpp
   LINKS

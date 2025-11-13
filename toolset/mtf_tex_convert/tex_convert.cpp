@@ -1,5 +1,5 @@
 /*  MTFTEXConvert
-    Copyright(C) 2021-2022 Lukas Cone
+    Copyright(C) 2021-2025 Lukas Cone
 
     This program is free software : you can redistribute it and / or modify
     it under the terms of the GNU General Public License as published by
@@ -19,25 +19,16 @@
 #include "re_common.hpp"
 #include "revil/tex.hpp"
 #include "spike/io/binreader_stream.hpp"
-#include "spike/io/binwritter_stream.hpp"
-#include "spike/io/fileinfo.hpp"
 
 std::string_view filters[]{
     ".tex$",
 };
 
-struct TEXConvert : ReflectorBase<TEXConvert>, Tex2DdsSettings {
+struct TEXConvert : ReflectorBase<TEXConvert> {
+  Platform platformOverride = Platform::Auto;
 } settings;
 
 REFLECT(CLASS(TEXConvert),
-        MEMBERNAME(
-            convertIntoLegacy, "legacy-dds", "l",
-            ReflDesc{"Tries to convert texture into legacy (DX9) DDS format."}),
-        MEMBERNAME(convertIntoLegacyNonCannon, "force-legacy-dds", "f",
-                   ReflDesc{"Will try to convert some matching formats from "
-                            "DX10 to DX9, for example: RG88 to AL88."}),
-        MEMBERNAME(noMips, "largest-mipmap-only", "m",
-                   ReflDesc{"Will try to extract only highest mipmap."}),
         MEMBERNAME(platformOverride, "platform", "p",
                    ReflDesc{"Set platform for correct texture handling."}));
 
@@ -55,7 +46,30 @@ void AppProcessFile(AppContext *ctx) {
   TEX tex;
   tex.Load(ctx->GetStream(), settings.platformOverride);
 
-  AFileInfo fleInfo0(ctx->workingFile);
-  BinWritterRef wr(ctx->NewFile(fleInfo0.ChangeExtension(".dds")).str);
-  tex.SaveAsDDS(wr, settings);
+  auto tctx = ctx->NewImage(tex.ctx);
+
+  if (tex.ctx.numFaces > 0) {
+    for (uint16 f = 0; f < tex.ctx.numFaces; f++) {
+      for (uint8 m = 0; m < tex.ctx.numMipmaps; m++) {
+        TexelInputLayout layout{
+            .mipMap = m,
+            .face = CubemapFace(f + 1),
+        };
+        tctx->SendRasterData(
+            tex.buffer.data() + tex.offsets.at(m) + f * tex.faceSize, layout);
+      }
+    }
+  } else {
+    for (uint16 d = 0; d < tex.ctx.depth; d++) {
+      for (uint8 m = 0; m < tex.ctx.numMipmaps; m++) {
+        TexelInputLayout layout{
+            .mipMap = m,
+            .layer = d,
+        };
+        tctx->SendRasterData(tex.buffer.data() +
+                                 tex.offsets.at(d * tex.ctx.numMipmaps + m),
+                             layout);
+      }
+    }
+  }
 }

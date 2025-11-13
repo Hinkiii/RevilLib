@@ -12,7 +12,6 @@ if(NOT NO_OBJECTS)
     OBJECT
     SOURCES
     ${CORE_SOURCE_FILES}
-    ${TPD_PATH}/pvr_core/pvr_decompress.cpp
     PROPERTIES
     POSITION_INDEPENDENT_CODE ${OBJECTS_PID}
     INCLUDES
@@ -37,7 +36,6 @@ if(BUILD_SHARED_LIBS)
     SHARED
     SOURCES
     ${CORE_SOURCE_FILES}
-    ${TPD_PATH}/pvr_core/pvr_decompress.cpp
     INCLUDES
     ${TPD_PATH}/pvr_core
     LINKS

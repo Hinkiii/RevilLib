@@ -1,5 +1,5 @@
 /*  Revil Format Library
-    Copyright(C) 2020-2023 Lukas Cone
+    Copyright(C) 2020-2025 Lukas Cone
 
     This program is free software : you can redistribute it and / or modify
     it under the terms of the GNU General Public License as published by
@@ -16,11 +16,9 @@
 */
 
 #include "revil/tex.hpp"
-#include "pvr_decompress.hpp"
 #include "spike/except.hpp"
-#include "spike/gpu/addr_ps3.hpp"
+#include "spike/format/DDS.hpp"
 #include "spike/io/binreader_stream.hpp"
-#include "spike/io/binwritter_stream.hpp"
 #include "spike/type/bitfield.hpp"
 #include <map>
 #include <vector>
@@ -98,6 +96,18 @@ enum class TEXFormatV2PS4 : uint8 {
   DXT1_NM = 0x1e,
   BC5S = 0x1f,
   BC4 = 0x19,
+};
+
+enum class TEXFormatA0 : uint8 {
+  R8 = 0,
+  RGBA8 = 7,
+  BC3_YUV = 0xA,
+  BC1 = 0x13,
+  BC2 = 0x15,
+  BC3 = 0x17,
+  BC4 = 0x19,
+  BC1_NM = 0x1e,
+  BC5 = 0x1f,
 };
 
 static constexpr uint32 TEXID = CompileFourCC("TEX");
@@ -278,229 +288,156 @@ struct TEXCubemapData {
   float unk[27];
 };
 
-DDS_HeaderDX10 ConvertTEXFormat(TEXFormat fmt) {
+TexelInputFormat ConvertTEXFormat(TEXFormat fmt) {
+  TexelInputFormat retVal;
+
   switch (fmt) {
   case TEXFormat::DXT1:
-    return DXGI_FORMAT_BC1_UNORM;
-  case TEXFormat::DXT2: {
-    DDS_HeaderDX10 retVal(DXGI_FORMAT_BC2_UNORM);
-    retVal.alphaMode = DDS_HeaderDX10::AlphaMode_Premultiplied;
-    return retVal;
-  }
+    retVal.type = TexelInputFormatType::BC1;
+    break;
+  case TEXFormat::DXT2:
+    retVal.type = TexelInputFormatType::BC2;
+    retVal.premultAlpha = true;
+    break;
   case TEXFormat::DXT3:
-    return DXGI_FORMAT_BC2_UNORM;
+    retVal.type = TexelInputFormatType::BC2;
+    break;
   case TEXFormat::DXT5:
-    return DXGI_FORMAT_BC3_UNORM;
+    retVal.type = TexelInputFormatType::BC3;
+    break;
   case TEXFormat::RGBA8_PACKED:
-    return DXGI_FORMAT_R8G8B8A8_UNORM;
+    retVal.type = TexelInputFormatType::RGBA8;
+    break;
   case TEXFormat::RG8_SNORM:
-    return DXGI_FORMAT_R8G8_SNORM;
+    retVal.type = TexelInputFormatType::RG8;
+    retVal.snorm = true;
+    break;
 
   default:
     throw std::runtime_error("Unknown texture format!");
   }
+
+  return retVal;
 }
 
-DDS_HeaderDX10 ConvertTEXFormat(TEXFormatV2 fmt) {
+TexelInputFormat ConvertTEXFormat(TEXFormatV2 fmt) {
+  TexelInputFormat retVal;
+
   switch (fmt) {
   case TEXFormatV2::DXT1:
   case TEXFormatV2::DXT1_Gray:
   case TEXFormatV2::DXT1_NM:
-    return DXGI_FORMAT_BC1_UNORM;
+    retVal.type = TexelInputFormatType::BC1;
+    break;
   case TEXFormatV2::DXT3:
-    return DXGI_FORMAT_BC2_UNORM;
+    retVal.type = TexelInputFormatType::BC2;
+    break;
   case TEXFormatV2::DXT5:
   case TEXFormatV2::DXT5_NM:
   case TEXFormatV2::DXT5_LM:
   case TEXFormatV2::DXT5_PM:
   case TEXFormatV2::DXT5_ID:
   case TEXFormatV2::DXT5_YUV:
-    return DXGI_FORMAT_BC3_UNORM;
+    retVal.type = TexelInputFormatType::BC3;
+    break;
   case TEXFormatV2::RGBA16F:
-    return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    retVal.type = TexelInputFormatType::RGBA16;
+    break;
   case TEXFormatV2::RGBA8:
-    return DXGI_FORMAT_R8G8B8A8_UNORM;
+    retVal.type = TexelInputFormatType::RGBA8;
+    break;
 
   default:
     throw std::runtime_error("Unknown texture format!");
   }
+
+  return retVal;
 }
 
-DDS_HeaderDX10 ConvertTEXFormat(TEXFormatV2PS4 fmt) {
+TexelInputFormat ConvertTEXFormat(TEXFormatV2PS4 fmt) {
+  TexelInputFormat retVal;
+
   switch (fmt) {
   case TEXFormatV2PS4::DXT1:
   case TEXFormatV2PS4::DXT1_NM:
-    return DXGI_FORMAT_BC1_UNORM;
+    retVal.type = TexelInputFormatType::BC1;
+    break;
   case TEXFormatV2PS4::DXT3:
-    return DXGI_FORMAT_BC2_UNORM;
+    retVal.type = TexelInputFormatType::BC2;
+    break;
   case TEXFormatV2PS4::DXT5:
   case TEXFormatV2PS4::DXT5_YUV:
-    return DXGI_FORMAT_BC3_UNORM;
+    retVal.type = TexelInputFormatType::BC3;
+    break;
   case TEXFormatV2PS4::BC4:
-    return DXGI_FORMAT_BC4_UNORM;
+    retVal.type = TexelInputFormatType::BC4;
+    break;
   case TEXFormatV2PS4::BC5S:
-    return DXGI_FORMAT_BC5_SNORM;
+    retVal.type = TexelInputFormatType::BC5;
+    retVal.snorm = true;
+    break;
   case TEXFormatV2PS4::BC7:
-    return DXGI_FORMAT_BC7_UNORM;
+    retVal.type = TexelInputFormatType::BC7;
+    break;
   case TEXFormatV2PS4::R8:
-    return DXGI_FORMAT_R8_UNORM;
+    retVal.type = TexelInputFormatType::R8;
+    break;
   default:
     throw std::runtime_error("Unknown texture format!");
   }
+
+  return retVal;
 }
 
-size_t AddrPS4(size_t x, size_t y, size_t width) {
-  const size_t x0 = x & 1;
-  const size_t x1 = (x & 2) << 1;
-  const size_t x2 = (x & 4) << 2;
+TexelInputFormat ConvertTEXFormat(TEXFormatA0 fmt) {
+  TexelInputFormat retVal;
 
-  const size_t y0 = (y & 1) << 1;
-  const size_t y1 = (y & 2) << 2;
-  const size_t y2 = (y & 4) << 3;
+  switch (fmt) {
+  case TEXFormatA0::BC1:
+  case TEXFormatA0::BC1_NM:
+    retVal.type = TexelInputFormatType::BC1;
+    break;
+  case TEXFormatA0::BC2:
+    retVal.type = TexelInputFormatType::BC2;
+    break;
+  case TEXFormatA0::BC3:
+  case TEXFormatA0::BC3_YUV:
+    retVal.type = TexelInputFormatType::BC3;
+    break;
+  case TEXFormatA0::BC4:
+    retVal.type = TexelInputFormatType::BC4;
+    break;
+  case TEXFormatA0::BC5:
+    retVal.type = TexelInputFormatType::BC5;
+    retVal.swizzle.g = TexelSwizzleType::DeriveZ;
+    break;
+  case TEXFormatA0::RGBA8:
+    retVal.type = TexelInputFormatType::RGBA8;
+    break;
+  case TEXFormatA0::R8:
+    retVal.type = TexelInputFormatType::R8;
+    break;
 
-  size_t retval = x0 | x1 | x2 | y0 | y1 | y2;
-
-  const size_t macroX = x / 8;
-  const size_t macroY = y / 8;
-  const size_t macroWidth = width / 8;
-
-  const size_t macroAddr = (macroWidth * macroY) + macroX;
-
-  return retval | (macroAddr << 6);
-}
-
-struct TEXInternal : TEX {
-  void ConvertBuffer(Platform platform) {
-    if (asDDS.dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM &&
-        platform == Platform::PS3 && IsPow2(asDDS.width) &&
-        IsPow2(asDDS.height)) {
-      std::string oldBuffer = buffer;
-      MortonSettings mset(asDDS.width, asDDS.height);
-      const size_t stride = sizeof(uint32);
-
-      for (size_t p = 0; p < buffer.size(); p += stride) {
-        const size_t coord = p >> 2;
-        const size_t x = coord % asDDS.width;
-        const size_t y = coord / asDDS.width;
-        memcpy(&buffer[p], oldBuffer.data() + MortonAddr(x, y, mset) * stride,
-               stride);
-        FByteswapper(reinterpret_cast<uint32 &>(buffer[p]));
-      }
-    } else if (platform == Platform::PS4) {
-      size_t blockSize = 0;
-      size_t width = asDDS.width;
-      size_t height = asDDS.height;
-
-      if (asDDS.bpp == 4) {
-        blockSize = 8;
-        width /= 4;
-        height /= 4;
-      } else if (asDDS.bpp == 8) {
-        blockSize = 16;
-        width /= 4;
-        height /= 4;
-      } else {
-        blockSize = asDDS.bpp / 8;
-      }
-
-      auto widthp2 = std::max(width, size_t(8));
-
-      widthp2--;
-      widthp2 |= widthp2 >> 1;
-      widthp2 |= widthp2 >> 2;
-      widthp2 |= widthp2 >> 4;
-      widthp2 |= widthp2 >> 8;
-      widthp2 |= widthp2 >> 16;
-      widthp2++;
-
-      auto heightp2 = std::max(height, size_t(8));
-
-      heightp2--;
-      heightp2 |= heightp2 >> 1;
-      heightp2 |= heightp2 >> 2;
-      heightp2 |= heightp2 >> 4;
-      heightp2 |= heightp2 >> 8;
-      heightp2 |= heightp2 >> 16;
-      heightp2++;
-
-      std::string oldBuffer = buffer;
-
-      for (size_t h = 0; h < height; h++) {
-        for (size_t w = 0; w < width; w++) {
-          auto addr = AddrPS4(w, h, widthp2);
-          memcpy(buffer.data() + ((width * h) + w) * blockSize,
-                 oldBuffer.data() + addr * blockSize, blockSize);
-        }
-      }
-    }
-
-    if (asDDS.dxgiFormat == DXGI_FORMAT_BC5_SNORM) {
-      struct BlockType {
-        union {
-          struct {
-            int8 minS;
-            int8 maxS;
-          };
-          struct {
-            uint8 minU;
-            uint8 maxU;
-          };
-        };
-
-        uint16 nibblesCont;
-        uint32 nibbles;
-      };
-
-      const size_t stride = sizeof(BlockType);
-
-      for (size_t p = 0; p < buffer.size(); p += stride) {
-        BlockType tmpBlock;
-        memcpy(&tmpBlock, buffer.data() + p, sizeof(tmpBlock));
-        tmpBlock.minU = std::max(tmpBlock.minS, int8(0)) * 2;
-        tmpBlock.maxU = std::max(tmpBlock.maxS, int8(0)) * 2;
-        memcpy(buffer.data() + p, &tmpBlock, sizeof(tmpBlock));
-      }
-
-      asDDS.dxgiFormat = DXGI_FORMAT_BC5_UNORM;
-    } else if (asDDS.dxgiFormat == DXGI_FORMAT_R8G8_SNORM) {
-      const size_t stride = sizeof(__m128i);
-      const size_t numLoops = buffer.size() / stride;
-      const size_t restBytes = buffer.size() % stride;
-
-      auto process = [](const char *data) {
-        __m128i xmm = _mm_loadu_si128(reinterpret_cast<const __m128i *>(data));
-        const __m128i xmn = _mm_set1_epi8(0x80);
-        return _mm_add_epi8(xmm, xmn);
-      };
-
-      for (size_t i = 0; i < numLoops; i++) {
-        const size_t index = i * stride;
-        const __m128i value = process(buffer.data() + index);
-        memcpy(&buffer[index], &value, stride);
-      }
-
-      if (restBytes) {
-        const size_t index = numLoops * stride;
-        const __m128i value = process(buffer.data() + index);
-        memcpy(&buffer[index], &value, restBytes);
-      }
-
-      asDDS.dxgiFormat = DXGI_FORMAT_R8G8_UNORM;
-    } else if (platform == Platform::Android && asDDS == DDSFormat_A4R4G4B4) {
-      const size_t stride = sizeof(uint16);
-      const size_t numLoops = buffer.size() / stride;
-
-      for (size_t i = 0; i < numLoops; i++) {
-        const size_t index = i * stride;
-        uint16 &data = *reinterpret_cast<uint16 *>(buffer.data() + index);
-        data = data >> 4 | data << 12;
-      }
-    }
+  default:
+    throw std::runtime_error("Unknown texture format!");
   }
-};
+
+  return retVal;
+}
+
+void ApplyModifications(NewTexelContextCreate &ctx, Platform platform) {
+  if (ctx.baseFormat.type == TexelInputFormatType::RGBA8 &&
+      platform == Platform::PS3 && IsPow2(ctx.width) && IsPow2(ctx.height)) {
+    ctx.baseFormat.tile = TexelTile::Morton;
+  } else if (platform == Platform::PS4) {
+    ctx.baseFormat.tile = TexelTile::MortonForcePow2;
+  } else if (platform == Platform::NSW) {
+    ctx.baseFormat.tile = TexelTile::NX;
+  }
+}
 
 TEX LoadTEXx56(BinReaderRef_e rd) {
-  TEXInternal main;
+  TEX main;
   TEXx56 header;
   rd.Read(header);
 
@@ -510,103 +447,99 @@ TEX LoadTEXx56(BinReaderRef_e rd) {
 
   if (header.type == TextureType::Volume) {
     BinReaderRef rdn(rd);
-    rdn.Read(static_cast<DDS_Header &>(main.asDDS));
-    rdn.Read(static_cast<DDS_PixelFormat &>(main.asDDS));
-    rdn.Read(static_cast<DDS_HeaderEnd &>(main.asDDS));
+    DDS_Header ddsHdr;
+    DDS_PixelFormat ddsPf;
+    DDS_HeaderEnd ddsFt;
+    rdn.Read(ddsHdr);
+    rdn.Read(ddsPf);
+    rdn.Read(ddsFt);
+
+    main.ctx.width = ddsHdr.width;
+    main.ctx.height = ddsHdr.height;
+    main.ctx.depth = ddsHdr.depth;
+    main.ctx.numMipmaps = ddsHdr.mipMapCount;
+
+    if (ddsPf == DDSFormat_DXT5) {
+      main.ctx.baseFormat.type = TexelInputFormatType::BC3;
+    } else {
+      throw std::runtime_error("Unknown texture format!");
+    }
   } else if (header.type == TextureType::Cubemap) {
     throw std::runtime_error("Cubemaps are not supported.");
   } else {
-    main.asDDS.width = header.width;
-    main.asDDS.height = header.height;
-    main.asDDS.depth = header.arraySize;
-    main.asDDS.NumMipmaps(header.numMips);
-    main.asDDS = DDSFormat_DX10;
-    main.asDDS = ConvertTEXFormat(header.fourcc);
+    main.ctx.width = header.width;
+    main.ctx.height = header.height;
+    main.ctx.depth = header.arraySize;
+    main.ctx.numMipmaps = header.numMips;
+    main.ctx.baseFormat = ConvertTEXFormat(header.fourcc);
   }
 
-  main.asDDS.ComputeBPP();
-  size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
-
-  if (header.arraySize) {
-    bufferSize *= header.arraySize;
-  }
-
+  size_t bufferSize = rd.GetSize() - rd.Tell();
   rd.ReadContainer(main.buffer, bufferSize);
-  main.ConvertBuffer(Platform::Win32);
+  ApplyModifications(main.ctx, Platform::Win32);
 
   return main;
 }
 
 template <class header_type>
 TEX LoadTEXx66(BinReaderRef_e rd, Platform platform) {
-  TEXInternal main;
+  TEX main;
   header_type header;
   rd.Read(header);
 
-  main.asDDS.width = header.width;
-  main.asDDS.height = header.height;
-  main.asDDS.depth = header.arraySize;
-  main.asDDS.NumMipmaps(header.numMips);
-  main.asDDS = DDSFormat_DX10;
-  main.asDDS = ConvertTEXFormat(header.fourcc);
+  main.ctx.width = header.width;
+  main.ctx.height = header.height;
+  main.ctx.depth = header.arraySize;
+  main.ctx.numMipmaps = header.numMips;
+  main.ctx.baseFormat = ConvertTEXFormat(header.fourcc);
   main.color = Vector4A16(header.colorCorrection);
 
   TextureType type = static_cast<TextureType>(
       header.type.template Get<typename header_type::TextureType>());
 
-  if (type == TextureType::Volume) {
-    main.asDDS.caps01 += DDS_HeaderEnd::Caps01Flags_Volume;
-  } else if (type == TextureType::Cubemap) {
+  if (type == TextureType::Cubemap) {
     throw std::runtime_error("Cubemaps are not supported.");
   }
 
-  std::vector<uint32> offsets;
-  rd.ReadContainer(offsets, header.numFaces * header.numMips);
+  rd.ReadContainer(main.offsets, header.numFaces * header.numMips);
 
-  main.asDDS.ComputeBPP();
-  size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
+  size_t bufferSize = rd.GetSize() - rd.Tell();
 
   if (header.arraySize) {
     bufferSize *= header.arraySize;
   }
 
   rd.ReadContainer(main.buffer, bufferSize);
-  main.ConvertBuffer(platform);
+  ApplyModifications(main.ctx, platform);
 
   return main;
 }
 
 TEX LoadTEXx87(BinReaderRef_e rd, Platform) {
-  TEXInternal main;
+  TEX main;
   TEXx87 header;
   rd.Read(header);
   using t = TEXx87;
 
-  main.asDDS.width = header.tier0.Get<t::Width>();
-  main.asDDS.height = header.tier1.Get<t::Height>();
-  main.asDDS.depth = header.tier1.Get<t::Depth>();
-  main.asDDS.NumMipmaps(header.tier0.Get<t::NumMips>());
-  main.asDDS = DDSFormat_DX10;
-  main.asDDS = ConvertTEXFormat(header.format);
+  main.ctx.width = header.tier0.Get<t::Width>();
+  main.ctx.height = header.tier1.Get<t::Height>();
+  main.ctx.depth = header.tier1.Get<t::Depth>();
+  main.ctx.numMipmaps = header.tier0.Get<t::NumMips>();
+  main.ctx.baseFormat = ConvertTEXFormat(header.format);
 
   TextureTypeV2 type = (TextureTypeV2)header.tier0.Get<t::TextureType>();
 
-  if (type == TextureTypeV2::Volume) {
-    main.asDDS.caps01 += DDS_HeaderEnd::Caps01Flags_Volume;
-  } else if (type == TextureTypeV2::Cubemap) {
+  if (type == TextureTypeV2::Cubemap) {
     throw std::runtime_error("Cubemaps are not supported.");
   }
 
-  uint32 numOffsets = main.asDDS.depth * main.asDDS.mipMapCount;
+  uint32 numOffsets = main.ctx.depth * main.ctx.numMipmaps;
+  rd.ReadContainer(main.offsets, numOffsets);
 
-  std::vector<uint32> offsets;
-  rd.ReadContainer(offsets, numOffsets);
+  size_t bufferSize = rd.GetSize() - rd.Tell();
 
-  main.asDDS.ComputeBPP();
-  size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
-
-  if (main.asDDS.depth) {
-    bufferSize *= main.asDDS.depth;
+  if (main.ctx.depth) {
+    bufferSize *= main.ctx.depth;
   }
 
   rd.ReadContainer(main.buffer, bufferSize);
@@ -615,31 +548,27 @@ TEX LoadTEXx87(BinReaderRef_e rd, Platform) {
 }
 
 TEX LoadTEXx9D(BinReaderRef_e rd, Platform platform) {
-  TEXInternal main;
+  TEX main;
   TEXx9D header;
   rd.Read(header);
   using t = TEXx9D;
 
-  main.asDDS.width = header.tier1.Get<t::Width>();
-  main.asDDS.height = header.tier1.Get<t::Height>();
-  main.asDDS.depth = header.tier2.Get<t::Depth>();
-  main.asDDS.NumMipmaps(header.tier1.Get<t::NumMips>());
-  main.asDDS = DDSFormat_DX10;
+  main.ctx.width = header.tier1.Get<t::Width>();
+  main.ctx.height = header.tier1.Get<t::Height>();
+  main.ctx.depth = header.tier2.Get<t::Depth>();
+  main.ctx.numMipmaps = header.tier1.Get<t::NumMips>();
 
   TextureTypeV2 type = (TextureTypeV2)header.tier0.Get<t::TextureType>();
 
-  if (type == TextureTypeV2::Volume) {
-    main.asDDS.caps01 += DDS_HeaderEnd::Caps01Flags_Volume;
-  } else if (type == TextureTypeV2::Cubemap) {
+  if (type == TextureTypeV2::Cubemap) {
     throw std::runtime_error("Cubemaps are not supported.");
   }
 
-  uint32 numOffsets = main.asDDS.depth * main.asDDS.mipMapCount;
+  uint32 numOffsets = main.ctx.depth * main.ctx.numMipmaps;
 
   auto fallback = [&] {
-    std::vector<uint32> offsets;
-    rd.ReadContainer(offsets, numOffsets);
-    main.asDDS =
+    rd.ReadContainer(main.offsets, numOffsets);
+    main.ctx.baseFormat =
         ConvertTEXFormat((TEXFormatV2)header.tier2.Get<t::TextureFormat>());
   };
 
@@ -655,86 +584,98 @@ TEX LoadTEXx9D(BinReaderRef_e rd, Platform platform) {
     } else {
       std::vector<uint64> offsets;
       rd.ReadContainer(offsets, numOffsets);
+      main.offsets.assign(offsets.begin(), offsets.end());
       platform = Platform::PS4;
-      main.asDDS = ConvertTEXFormat(
+      main.ctx.baseFormat = ConvertTEXFormat(
           (TEXFormatV2PS4)header.tier2.Get<t::TextureFormat>());
     }
   } else {
     fallback();
   }
 
-  main.asDDS.ComputeBPP();
-  size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
+  size_t bufferSize = rd.GetSize() - rd.Tell();
 
-  if (main.asDDS.depth) {
-    bufferSize *= main.asDDS.depth;
+  if (main.ctx.depth) {
+    bufferSize *= main.ctx.depth;
   }
 
   rd.ReadContainer(main.buffer, bufferSize);
-  main.ConvertBuffer(platform);
+  ApplyModifications(main.ctx, platform);
 
   return main;
 }
 
-TEX LoadTEXx09(BinReaderRef_e rd_, Platform) {
+TEX LoadTEXx09(BinReaderRef_e rd_, Platform platform) {
   BinReaderRef rd(rd_);
-  TEXInternal main;
+  TEX main;
   TEXx09 header;
   rd.Read(header);
 
-  main.asDDS.width = header.width;
-  main.asDDS.height = header.height;
-  main.asDDS.NumMipmaps(header.numMips);
+  main.ctx.width = header.width;
+  main.ctx.height = header.height;
+  main.ctx.numMipmaps = header.numMips;
 
-  if (header.format == TEXFormatAndr::PVRTC4) {
-    main.asDDS = DDSFormat_A8B8G8R8;
-    std::string buffer;
-    const size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
-    main.buffer.resize(bufferSize);
-    rd.Seek(header.pvrtcOffset);
-    rd.ReadContainer(buffer, header.pvrtcSize);
-    size_t curOffset = 0;
-
-    for (size_t m = 0; m < header.numMips; m++) {
-      curOffset += pvrrvl::PVRTDecompressPVRTC(
-          buffer.data() + curOffset, 0, header.width / (1 << m),
-          header.height / (1 << m),
-          reinterpret_cast<uint8 *>(main.buffer.data() + main.mips.offsets[m]));
-    }
-  } else if (header.format == TEXFormatAndr::ETC1) {
-    main.asDDS = DDSFormat_A8B8G8R8;
-    std::string buffer;
-    const size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
-    main.buffer.resize(bufferSize);
-    rd.ReadContainer(buffer, rd.GetSize() - sizeof(header));
-    size_t curOffset = 0;
-
-    for (size_t m = 0; m < header.numMips; m++) {
-      curOffset += pvrrvl::PVRTDecompressETC(
-          buffer.data() + curOffset, header.width / (1 << m),
-          header.height / (1 << m), main.buffer.data() + main.mips.offsets[m],
-          0);
-    }
-  } else if (header.format == TEXFormatAndr::RGBA4) {
-    main.asDDS = DDSFormat_A4R4G4B4;
-    size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
-    rd.ReadContainer(main.buffer, bufferSize);
-  } else if (header.format == TEXFormatAndr::RGBA8) {
-    main.asDDS = DDSFormat_A8B8G8R8;
-    size_t bufferSize = main.asDDS.ComputeBufferSize(main.mips);
-    rd.ReadContainer(main.buffer, bufferSize);
-  } else {
+  switch (header.format) {
+  case TEXFormatAndr::PVRTC4:
+    main.ctx.baseFormat.type = TexelInputFormatType::PVRTC4;
+    break;
+  case TEXFormatAndr::ETC1:
+    main.ctx.baseFormat.type = TexelInputFormatType::ETC1;
+    break;
+  case TEXFormatAndr::RGBA4:
+    main.ctx.baseFormat.type = TexelInputFormatType::RGBA4;
+    break;
+  case TEXFormatAndr::RGBA8:
+    main.ctx.baseFormat.type = TexelInputFormatType::RGBA8;
+    break;
+  default:
     throw std::runtime_error("Unknown texture format!");
   }
 
-  main.ConvertBuffer(Platform::Android);
+  ApplyModifications(main.ctx, platform);
+
+  return main;
+}
+
+TEX LoadTEXxA0(BinReaderRef_e rd, Platform platform) {
+  TEX main;
+  TEXx9D header;
+  rd.Read(header);
+  using t = TEXx9D;
+
+  main.ctx.width = header.tier1.Get<t::Width>();
+  main.ctx.height = header.tier1.Get<t::Height>();
+  main.ctx.depth = header.tier2.Get<t::Depth>();
+  main.ctx.numMipmaps = header.tier1.Get<t::NumMips>();
+
+  TextureTypeV2 type = (TextureTypeV2)header.tier0.Get<t::TextureType>();
+
+  if (type == TextureTypeV2::Cubemap) {
+    main.ctx.numFaces = 6;
+    rd.Read(main.harmonics);
+  }
+
+  uint32 numOffsets = main.ctx.depth * main.ctx.numMipmaps;
+
+  uint32 bufferSize;
+  rd.Read(bufferSize);
+  rd.ReadContainer(main.offsets, numOffsets);
+  main.ctx.baseFormat =
+      ConvertTEXFormat((TEXFormatA0)header.tier2.Get<t::TextureFormat>());
+
+  if (type == TextureTypeV2::Cubemap) {
+    rd.Read(main.faceSize);
+  }
+
+  rd.ReadContainer(main.buffer, bufferSize);
+  ApplyModifications(main.ctx, platform);
 
   return main;
 }
 
 static const std::map<uint16, TEX (*)(BinReaderRef_e, Platform)> texLoaders{
     {0x66, LoadTEXx66<TEXx66>}, {0x70, LoadTEXx66<TEXx70>}, {0x87, LoadTEXx87},
-    {0x9D, LoadTEXx9D},         {0x09, LoadTEXx09},
+    {0x9D, LoadTEXx9D},         {0x09, LoadTEXx09},         {0xA0, LoadTEXxA0},
 };
 
 void TEX::Load(BinReaderRef_e rd, Platform platform) {
@@ -792,25 +733,4 @@ void TEX::Load(BinReaderRef_e rd, Platform platform) {
 
   *this = found->second(rd, platform);
   return;
-}
-
-void TEX::SaveAsDDS(BinWritterRef wr, Tex2DdsSettings settings) {
-  size_t headerSize = asDDS.dxgiFormat ? DDS::DDS_SIZE : DDS::LEGACY_SIZE;
-
-  if (settings.convertIntoLegacy) {
-    int result = asDDS.ToLegacy(settings.convertIntoLegacyNonCannon);
-
-    if (!result) {
-      headerSize = DDS::LEGACY_SIZE;
-    }
-  }
-
-  wr.WriteBuffer(reinterpret_cast<const char *>(&asDDS), headerSize);
-
-  if (settings.noMips && asDDS.mipMapCount > 1) {
-    asDDS.NumMipmaps(1);
-    wr.WriteBuffer(buffer.data(), mips.sizes[0]);
-  } else {
-    wr.WriteContainer(buffer);
-  }
 }
