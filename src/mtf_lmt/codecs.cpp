@@ -147,7 +147,7 @@ size_t Buf_SingleVector3::Size() const { return 12; }
 void Buf_SingleVector3::AppendToString(std::stringstream &buffer) const {
   ReflectorWrap<const Buf_SingleVector3> tRefl(this);
 
-  buffer << tRefl.GetReflectedValue(0);
+  buffer << tRefl["data"].ReflectedValue();
 }
 
 std::string_view
@@ -155,7 +155,7 @@ Buf_SingleVector3::RetreiveFromString(std::string_view buffer) {
   buffer = es::SkipStartWhitespace(buffer, true);
 
   ReflectorWrap<Buf_SingleVector3> tRefl(this);
-  tRefl.SetReflectedValue(0, buffer);
+  tRefl["data"] = buffer;
   return SeekTo(buffer);
 }
 
@@ -204,8 +204,8 @@ size_t Buf_LinearVector3::Size() const { return 16; }
 void Buf_LinearVector3::AppendToString(std::stringstream &buffer) const {
   ReflectorWrap<const Buf_LinearVector3> tRefl(this);
 
-  buffer << "{ " << tRefl.GetReflectedValue(0) << ", "
-         << tRefl.GetReflectedValue(1) << " }";
+  buffer << "{ " << tRefl["data"].ReflectedValue() << ", "
+         << tRefl["additiveFrames"].ReflectedValue() << " }";
 }
 
 std::string_view
@@ -214,13 +214,13 @@ Buf_LinearVector3::RetreiveFromString(std::string_view buffer) {
   buffer = es::SkipStartWhitespace(buffer, true);
 
   ReflectorWrap<Buf_LinearVector3> tRefl(this);
-  tRefl.SetReflectedValue(0, buffer);
+  tRefl["data"] = buffer;
 
   buffer = SeekTo(buffer, ']');
   buffer = SeekTo(buffer, ',');
   buffer = es::SkipStartWhitespace(buffer, true);
 
-  tRefl.SetReflectedValue(1, buffer);
+  tRefl["additiveFrames"] = buffer;
 
   return SeekTo(buffer);
 }
@@ -262,8 +262,9 @@ size_t Buf_HermiteVector3::Size() const { return size; }
 void Buf_HermiteVector3::AppendToString(std::stringstream &buffer) const {
   ReflectorWrap<const Buf_HermiteVector3> tRefl(this);
 
-  buffer << "{ " << tRefl.GetReflectedValue(2) << ", "
-         << tRefl.GetReflectedValue(1) << ", " << tRefl.GetReflectedValue(0);
+  buffer << "{ " << tRefl["data"].ReflectedValue() << ", "
+         << tRefl["additiveFrames"].ReflectedValue() << ", "
+         << tRefl["flags"].ReflectedValue();
 
   size_t curTang = 0;
 
@@ -282,17 +283,17 @@ Buf_HermiteVector3::RetreiveFromString(std::string_view buffer) {
   buffer = es::SkipStartWhitespace(buffer, true);
 
   ReflectorWrap<Buf_HermiteVector3> tRefl(this);
-  tRefl.SetReflectedValue(2, buffer);
+  tRefl["data"] = buffer;
 
   buffer = SeekTo(buffer, ',');
   buffer = es::SkipStartWhitespace(buffer, true);
 
-  tRefl.SetReflectedValue(1, buffer);
+  tRefl["additiveFrames"] = buffer;
 
   buffer = SeekTo(buffer, ',');
   buffer = es::SkipStartWhitespace(buffer, true);
 
-  tRefl.SetReflectedValue(0, buffer);
+  tRefl["flags"] = buffer;
 
   buffer = SeekTo(buffer, ',');
   buffer = es::SkipStartWhitespace(buffer, true);

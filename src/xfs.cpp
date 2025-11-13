@@ -43,33 +43,32 @@ using namespace revil;
 
 struct XFSClassMember;
 
-MAKE_ENUM(ENUMSCOPE(class XFSType
-                    : uint8, XFSType), //
-          EMEMBER(invalid_),           //
-          EMEMBER(class_),             //
-          EMEMBER(classref_),          //
-          EMEMBER(bool_),              //
-          EMEMBER(u8_),                //
-          EMEMBER(u16_),               //
-          EMEMBER(u32_),               //
-          EMEMBER(u64_),               //
-          EMEMBER(s8_),                //
-          EMEMBER(s16_),               //
-          EMEMBER(s32_),               //
-          EMEMBER(s64_),               //
-          EMEMBER(f32_),               //
-          EMEMBERVAL(string_, 14),     //
-          EMEMBER(color_),             //
-          EMEMBER(point_),             //
-          EMEMBER(size_),              //
-          EMEMBER(rect_),              // 8+ rectangle?
-          EMEMBER(_matrix_),           //
-          EMEMBER(vector4_),           //
-          EMEMBER(_vector4_),          // colour
-          EMEMBERVAL(string2_, 32),    //
-          EMEMBERVAL(vector2_, 34),    //
-          EMEMBER(vector3_),           //
-          EMEMBERVAL(_resource_, 0x80) // 8+, custom?
+MAKE_ENUM(ENUMSCOPE(class XFSType : uint8, XFSType), //
+          EMEMBER(invalid_),                         //
+          EMEMBER(class_),                           //
+          EMEMBER(classref_),                        //
+          EMEMBER(bool_),                            //
+          EMEMBER(u8_),                              //
+          EMEMBER(u16_),                             //
+          EMEMBER(u32_),                             //
+          EMEMBER(u64_),                             //
+          EMEMBER(s8_),                              //
+          EMEMBER(s16_),                             //
+          EMEMBER(s32_),                             //
+          EMEMBER(s64_),                             //
+          EMEMBER(f32_),                             //
+          EMEMBERVAL(string_, 14),                   //
+          EMEMBER(color_),                           //
+          EMEMBER(point_),                           //
+          EMEMBER(size_),                            //
+          EMEMBER(rect_),                            // 8+ rectangle?
+          EMEMBER(_matrix_),                         //
+          EMEMBER(vector4_),                         //
+          EMEMBER(_vector4_),                        // colour
+          EMEMBERVAL(string2_, 32),                  //
+          EMEMBERVAL(vector2_, 34),                  //
+          EMEMBER(vector3_),                         //
+          EMEMBERVAL(_resource_, 0x80)               // 8+, custom?
 );
 
 struct XFSSizeAndFlag {
@@ -272,8 +271,8 @@ void XFSClassDesc::ToXML(pugi::xml_node node) const {
   for (auto &m : members) {
     ReflectorWrap<const XFSClassMember> refl(m);
     auto mNode = cNode.append_child("member");
-    ReflectorXMLUtil::SaveV2a(refl, mNode,
-                              {ReflectorXMLUtil::Flags_StringAsAttribute});
+    ReflectorXMLUtil::Save(refl, mNode,
+                           {ReflectorXMLUtil::Flags_StringAsAttribute});
   }
 }
 
