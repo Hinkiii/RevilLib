@@ -55,21 +55,17 @@ void AppProcessFile(AppContext *ctx) {
             .mipMap = m,
             .face = CubemapFace(f + 1),
         };
-        tctx->SendRasterData(
-            tex.buffer.data() + tex.offsets.at(m) + f * tex.faceSize, layout);
+        tctx->SendRasterData(tex.buffer.data() +
+                                 tex.offsets.at(f * tex.ctx.numMipmaps + m),
+                             layout);
       }
     }
   } else {
-    for (uint16 d = 0; d < tex.ctx.depth; d++) {
-      for (uint8 m = 0; m < tex.ctx.numMipmaps; m++) {
-        TexelInputLayout layout{
-            .mipMap = m,
-            .layer = d,
-        };
-        tctx->SendRasterData(tex.buffer.data() +
-                                 tex.offsets.at(d * tex.ctx.numMipmaps + m),
-                             layout);
-      }
+    for (uint8 m = 0; m < tex.ctx.numMipmaps; m++) {
+      TexelInputLayout layout{
+          .mipMap = m,
+      };
+      tctx->SendRasterData(tex.buffer.data() + tex.offsets.at(m), layout);
     }
   }
 }

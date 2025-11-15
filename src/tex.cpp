@@ -71,7 +71,9 @@ enum class TEXFormat : uint32 {
 };
 
 enum class TEXFormatV2 : uint8 {
+  UNK = 0,
   RGBA16F = 0x2,
+  R8 = 0x7,
   DXT5_YUV = 0xA,
   BC7 = 0x10,
   DXT1 = 0x13,
@@ -99,7 +101,7 @@ enum class TEXFormatV2PS4 : uint8 {
 };
 
 enum class TEXFormatA0 : uint8 {
-  R8 = 0,
+  UNK = 0,
   RGBA8 = 7,
   BC3_YUV = 0xA,
   BC1 = 0x13,
@@ -338,6 +340,7 @@ TexelInputFormat ConvertTEXFormat(TEXFormatV2 fmt) {
   case TEXFormatV2::DXT5_PM:
   case TEXFormatV2::DXT5_ID:
   case TEXFormatV2::DXT5_YUV:
+  case TEXFormatV2::UNK:
     retVal.type = TexelInputFormatType::BC3;
     break;
   case TEXFormatV2::RGBA16F:
@@ -345,6 +348,9 @@ TexelInputFormat ConvertTEXFormat(TEXFormatV2 fmt) {
     break;
   case TEXFormatV2::RGBA8:
     retVal.type = TexelInputFormatType::RGBA8;
+    break;
+  case TEXFormatV2::R8:
+    retVal.type = TexelInputFormatType::R8;
     break;
 
   default:
@@ -400,6 +406,7 @@ TexelInputFormat ConvertTEXFormat(TEXFormatA0 fmt) {
   case TEXFormatA0::BC2:
     retVal.type = TexelInputFormatType::BC2;
     break;
+  case TEXFormatA0::UNK:
   case TEXFormatA0::BC3:
   case TEXFormatA0::BC3_YUV:
     retVal.type = TexelInputFormatType::BC3;
@@ -415,10 +422,6 @@ TexelInputFormat ConvertTEXFormat(TEXFormatA0 fmt) {
     retVal.swizzle.b = TexelSwizzleType::Red;
     retVal.swizzle.r = TexelSwizzleType::Blue;
     break;
-  case TEXFormatA0::R8:
-    retVal.type = TexelInputFormatType::R8;
-    break;
-
   default:
     throw std::runtime_error("Unknown texture format!");
   }
@@ -490,7 +493,7 @@ TEX LoadTEXx66(BinReaderRef_e rd, Platform platform) {
 
   main.ctx.width = header.width;
   main.ctx.height = header.height;
-  main.ctx.depth = header.arraySize;
+  main.ctx.depth = std::max(1, int(header.arraySize));
   main.ctx.numMipmaps = header.numMips;
   main.ctx.baseFormat = ConvertTEXFormat(header.fourcc);
   main.color = Vector4A16(header.colorCorrection);
@@ -499,24 +502,31 @@ TEX LoadTEXx66(BinReaderRef_e rd, Platform platform) {
       header.type.template Get<typename header_type::TextureType>());
 
   if (type == TextureType::Cubemap) {
-    throw std::runtime_error("Cubemaps are not supported.");
+    main.ctx.numFaces = 6;
+    rd.Read(main.harmonics);
   }
 
   rd.ReadContainer(main.offsets, header.numFaces * header.numMips);
+  uint32 bufferBegin = rd.Tell();
 
-  size_t bufferSize = rd.GetSize() - rd.Tell();
-
-  if (header.arraySize) {
-    bufferSize *= header.arraySize;
+  for (uint32 &o : main.offsets) {
+    o -= bufferBegin;
   }
+
+  size_t bufferSize = rd.GetSize() - bufferBegin;
 
   rd.ReadContainer(main.buffer, bufferSize);
   ApplyModifications(main.ctx, platform);
 
+  if (rd.SwappedEndian() &&
+      main.ctx.baseFormat.type == TexelInputFormatType::RGBA8) {
+    main.ctx.baseFormat.swapPacked = true;
+  }
+
   return main;
 }
 
-TEX LoadTEXx87(BinReaderRef_e rd, Platform) {
+TEX LoadTEXx87(BinReaderRef_e rd, Platform platform) {
   TEX main;
   TEXx87 header;
   rd.Read(header);
@@ -531,19 +541,28 @@ TEX LoadTEXx87(BinReaderRef_e rd, Platform) {
   TextureTypeV2 type = (TextureTypeV2)header.tier0.Get<t::TextureType>();
 
   if (type == TextureTypeV2::Cubemap) {
-    throw std::runtime_error("Cubemaps are not supported.");
+    main.ctx.numFaces = 6;
+    rd.Read(main.harmonics);
   }
 
-  uint32 numOffsets = main.ctx.depth * main.ctx.numMipmaps;
+  uint32 numOffsets =
+      std::max(int8(1), main.ctx.numFaces) * main.ctx.numMipmaps;
   rd.ReadContainer(main.offsets, numOffsets);
 
-  size_t bufferSize = rd.GetSize() - rd.Tell();
+  uint32 bufferBegin = rd.Tell();
 
-  if (main.ctx.depth) {
-    bufferSize *= main.ctx.depth;
+  for (uint32 &o : main.offsets) {
+    o -= bufferBegin;
   }
 
+  size_t bufferSize = rd.GetSize() - bufferBegin;
   rd.ReadContainer(main.buffer, bufferSize);
+  ApplyModifications(main.ctx, platform);
+
+  if (rd.SwappedEndian() &&
+      main.ctx.baseFormat.type == TexelInputFormatType::RGBA8) {
+    main.ctx.baseFormat.swapPacked = true;
+  }
 
   return main;
 }
@@ -562,10 +581,12 @@ TEX LoadTEXx9D(BinReaderRef_e rd, Platform platform) {
   TextureTypeV2 type = (TextureTypeV2)header.tier0.Get<t::TextureType>();
 
   if (type == TextureTypeV2::Cubemap) {
-    throw std::runtime_error("Cubemaps are not supported.");
+    main.ctx.numFaces = 6;
+    rd.Read(main.harmonics);
   }
 
-  uint32 numOffsets = main.ctx.depth * main.ctx.numMipmaps;
+  uint32 numOffsets =
+      std::max(int8(1), main.ctx.numFaces) * main.ctx.numMipmaps;
 
   auto fallback = [&] {
     rd.ReadContainer(main.offsets, numOffsets);
@@ -594,11 +615,13 @@ TEX LoadTEXx9D(BinReaderRef_e rd, Platform platform) {
     fallback();
   }
 
-  size_t bufferSize = rd.GetSize() - rd.Tell();
+  uint32 bufferBegin = rd.Tell();
 
-  if (main.ctx.depth) {
-    bufferSize *= main.ctx.depth;
+  for (uint32 &o : main.offsets) {
+    o -= bufferBegin;
   }
+
+  size_t bufferSize = rd.GetSize() - bufferBegin;
 
   rd.ReadContainer(main.buffer, bufferSize);
   ApplyModifications(main.ctx, platform);
@@ -656,7 +679,7 @@ TEX LoadTEXxA0(BinReaderRef_e rd, Platform platform) {
     rd.Read(main.harmonics);
   }
 
-  uint32 numOffsets = main.ctx.depth * main.ctx.numMipmaps;
+  uint32 numOffsets = main.ctx.numMipmaps;
 
   uint32 bufferSize;
   rd.Read(bufferSize);
@@ -665,7 +688,17 @@ TEX LoadTEXxA0(BinReaderRef_e rd, Platform platform) {
       ConvertTEXFormat((TEXFormatA0)header.tier2.Get<t::TextureFormat>());
 
   if (type == TextureTypeV2::Cubemap) {
-    rd.Read(main.faceSize);
+    uint32 faceSize;
+    rd.Read(faceSize);
+    auto offsets = main.offsets;
+
+    for (uint32 f = 0; f < 5; f++) {
+      for (auto &o : offsets) {
+        o += faceSize;
+      }
+
+      main.offsets.insert(main.offsets.end(), offsets.begin(), offsets.end());
+    }
   }
 
   rd.ReadContainer(main.buffer, bufferSize);

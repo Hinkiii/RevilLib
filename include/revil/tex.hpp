@@ -29,7 +29,6 @@ struct RE_EXTERN TEX {
   Vector4A16 color;
   std::string buffer;
   std::vector<uint32> offsets;
-  uint32 faceSize;
   float harmonics[27];
 
   void Load(BinReaderRef_e rd, Platform platform = Platform::Auto);
