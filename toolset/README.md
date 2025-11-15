@@ -17,7 +17,20 @@
 
 <p align="center">
 <b><a href="https://github.com/PredatorCZ/RevilLib/releases">Latest Release</a></b>
-</p><h2>Module list</h2>
+</p>
+
+## Release authenticity
+
+Every release asset will contain corresponding `.sig` file, together with [Sign Key](sign_key.asc) can be used to verify asset via gpg.
+
+Simple usage:
+
+```bash
+gpg --import sign_key.asc # Required only once
+gpg --verify <asset_name>.sig
+```
+
+<h2>Module list</h2>
 <ul>
 <li><a href="#Encrypt-or-Decrypt-DDON-SNGW">Encrypt or Decrypt DDON SNGW</a></li>
 <li><a href="#ARC-Extract">ARC Extract</a></li>
@@ -54,8 +67,6 @@ Encrypts or decrypts `.sngw` sounds/music files from Dragons Dogma Online.
   **Default value:** false
 
   Switch between encrypt or decrypt only.
-
-### Input file patterns: `.dwm$`
 
 ## ARC Extract
 
@@ -146,6 +157,44 @@ Converts MT Framework `.mod` model into GLTF format.
 
 ### Input file patterns: `.mod$`, `.dom$`
 
+### Settings
+
+- **quantize-mesh**
+
+  **CLI Long:** ***--quantize-mesh***\
+  **CLI Short:** ***-q***
+
+  **Default value:** true
+
+  Apply KHR_mesh_quantization.
+
+- **quantize-mesh-fake**
+
+  **CLI Long:** ***--quantize-mesh-fake***\
+  **CLI Short:** ***-Q***
+
+  **Default value:** false
+
+  KHR_mesh_quantization is not marked as required extension.
+
+- **no-lods**
+
+  **CLI Long:** ***--no-lods***\
+  **CLI Short:** ***-l***
+
+  **Default value:** true
+
+  Do not export LOD meshes.
+
+- **merge-meshes**
+
+  **CLI Long:** ***--merge-meshes***\
+  **CLI Short:** ***-m***
+
+  **Default value:** true
+
+  Merge meshes as groups
+
 ## MTF TEX to DDS
 
 ### Module command: mtf_tex_to_dds
@@ -155,33 +204,6 @@ Converts MT Framework `.tex` texture into DDS format.
 ### Input file patterns: `.tex$`
 
 ### Settings
-
-- **legacy-dds**
-
-  **CLI Long:** ***--legacy-dds***\
-  **CLI Short:** ***-l***
-
-  **Default value:** false
-
-  Tries to convert texture into legacy (DX9) DDS format.
-
-- **force-legacy-dds**
-
-  **CLI Long:** ***--force-legacy-dds***\
-  **CLI Short:** ***-f***
-
-  **Default value:** false
-
-  Will try to convert some matching formats from DX10 to DX9, for example: RG88 to AL88.
-
-- **largest-mipmap-only**
-
-  **CLI Long:** ***--largest-mipmap-only***\
-  **CLI Short:** ***-m***
-
-  **Default value:** false
-
-  Will try to extract only highest mipmap.
 
 - **platform**
 
@@ -317,4 +339,4 @@ Converts XML format back to MT Framework `.sdl` scheduler.
 This toolset is available under GPL v3 license. (See LICENSE.md)\
 This toolset uses following libraries:
 
-- RevilLib, Copyright (c) 2017-2024 Lukas Cone
+- RevilLib, Copyright (c) 2017-2025 Lukas Cone

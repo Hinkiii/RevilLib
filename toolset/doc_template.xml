@@ -17,7 +17,7 @@
 
 <p align="center">
 <b><a href="https://github.com/PredatorCZ/RevilLib/releases">Latest Release</a></b>
-</p>]]>
+</p>
 
 ## Release authenticity
 
@@ -27,8 +27,10 @@ Simple usage:
 
 ```bash
 gpg --import sign_key.asc # Required only once
-gpg --verify &lt;asset_name&gt;.sig
-```</toolset_description>
+gpg --verify <asset_name>.sig
+```
+
+]]></toolset_description>
 <ddon_sngw name="Encrypt or Decrypt DDON SNGW">Encrypts or decrypts `.sngw` sounds/music files from Dragons Dogma Online.</ddon_sngw>
 <mod_to_gltf name="MOD to GLTF">Converts MT Framework `.mod` model into GLTF format.</mod_to_gltf>
 <lmt_to_gltf name="LMT to GLTF">Converts MT Framework `.lmt` motion list into GLTF format.</lmt_to_gltf>
@@ -55,5 +57,5 @@ Currently only supports animations.</reasset_to_gltf>
 This toolset is available under GPL v3 license. (See LICENSE.md)\
 This toolset uses following libraries:
 
-- RevilLib, Copyright (c) 2017-2024 Lukas Cone
+- RevilLib, Copyright (c) 2017-2025 Lukas Cone
 </toolset_footer>
