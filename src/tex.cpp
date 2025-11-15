@@ -409,10 +409,11 @@ TexelInputFormat ConvertTEXFormat(TEXFormatA0 fmt) {
     break;
   case TEXFormatA0::BC5:
     retVal.type = TexelInputFormatType::BC5;
-    retVal.swizzle.g = TexelSwizzleType::DeriveZ;
     break;
   case TEXFormatA0::RGBA8:
     retVal.type = TexelInputFormatType::RGBA8;
+    retVal.swizzle.b = TexelSwizzleType::Red;
+    retVal.swizzle.r = TexelSwizzleType::Blue;
     break;
   case TEXFormatA0::R8:
     retVal.type = TexelInputFormatType::R8;
