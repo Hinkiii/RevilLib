@@ -604,7 +604,7 @@ void revil::SDLFromXML(BinWritterRef wr, pugi::xml_node rootNode) {
 
   if (std::string_view("rScheduler") !=
       FromXMLAttr<const char *>(classNode, "type")) {
-    throw std::runtime_error("Invalid class type, expected rScheduler");
+    throw es::RuntimeError("Invalid class type, expected rScheduler");
   }
 
   SDLHeaderV2_x64 hdr{};

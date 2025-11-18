@@ -16,6 +16,7 @@
 */
 
 #include "codecs.hpp"
+#include "spike/except.hpp"
 #include "spike/io/binwritter_stream.hpp"
 #include "spike/master_printer.hpp"
 #include "spike/reflect/reflector_xml.hpp"
@@ -123,7 +124,7 @@ std::string_view RetreiveFromRawString(C *clPtr, std::string_view buffer) {
   }
 
   if (cBuff < buffSize) {
-    throw std::runtime_error("Raw buffer is too short!");
+    throw es::RuntimeError("Raw buffer is too short!");
   }
 
   return buffer;

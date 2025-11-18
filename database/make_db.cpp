@@ -629,7 +629,7 @@ Header DoClasses(BinWritterRef wr,
         if (v == 0) {
           extNs.emplace(ext);
         } else {
-          throw std::runtime_error("ExtensionN not implemented for version 1");
+          throw es::RuntimeError("ExtensionN not implemented for version 1");
         }
 
         // extNs[ext] |= 1 << v;
@@ -831,12 +831,12 @@ DoTitleFixups(BinWritterRef wr, size_t indicesBegin, const Header *hdr,
           found = std::lower_bound(aClasses.begin(), aClasses.end(), hash);
 
           if (found == aClasses.end()) {
-            throw std::runtime_error("Cannot find class");
+            throw es::RuntimeError("Cannot find class");
           }
         }
 
         if (found->hash != hash) {
-          throw std::runtime_error("Cannot find class");
+          throw es::RuntimeError("Cannot find class");
         }
 
         if (std::string_view(found->extension) != c.extension) {
@@ -909,7 +909,7 @@ void ValidateDb(const Header *shdr) {
       auto oKey = LowerBound(t, shdr->titles);
 
       if (oKey == shdr->titles.end() || std::string_view(oKey->name) != t) {
-        throw std::runtime_error("Cannot find title");
+        throw es::RuntimeError("Cannot find title");
       }
 
       const Title &title = oKey->data;
@@ -919,7 +919,7 @@ void ValidateDb(const Header *shdr) {
       for (size_t p = 1; p < NUM_PLATFORMS; p++) {
         if (!d.usedPlatforms[p]) {
           if (supports[p - 1].operator->()) {
-            throw std::runtime_error("Validation failed");
+            throw es::RuntimeError("Validation failed");
           }
 
           continue;
@@ -928,54 +928,54 @@ void ValidateDb(const Header *shdr) {
         const TitleSupport &support = supports[p - 1];
 
         if (support.arc.version != d.arcSuport[p].version) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (support.arc.windowSize != d.arcSuport[p].windowSize) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (std::string_view(support.arc.key) != d.arcSuport[p].key) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (bool(support.arc.flags & DbArc_AllowRaw) !=
             d.arcSuport[p].allowRaw) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (bool(support.arc.flags & DbArc_ExtendedPath) !=
             d.arcSuport[p].extendedFilePath) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (bool(support.arc.flags & DbArc_XMemCompress) !=
             d.arcSuport[p].xmemOnly) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (bool(support.arc.flags & DbArc_Version1) != d.version1) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (support.lmtVersion !=
             (d.lmtVersions[p] ? d.lmtVersions[p] : d.lmtVersions[0])) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (support.modVersion !=
             (d.modVersions[p] ? d.modVersions[p] : d.modVersions[0])) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (support.texVersion !=
             (d.texVersions[p] ? d.texVersions[p] : d.texVersions[0])) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
 
         if (support.xfsVersion !=
             (d.xfsVersions[p] ? d.xfsVersions[p] : d.xfsVersions[0])) {
-          throw std::runtime_error("Validation failed");
+          throw es::RuntimeError("Validation failed");
         }
       }
 
@@ -995,7 +995,7 @@ void ValidateDb(const Header *shdr) {
                   if (fClasses[i].hash == hash) {
                     if (std::string_view(fClasses[i].extension) !=
                         c.extension) {
-                      throw std::runtime_error("Validation error");
+                      throw es::RuntimeError("Validation error");
                     }
                     found = true;
                     return;
@@ -1017,12 +1017,12 @@ void ValidateDb(const Header *shdr) {
             foundClass = LowerBound(hash, shdr->resourceClasses[0]);
 
             if (foundClass == shdr->resourceClasses[0].end()) {
-              throw std::runtime_error("Validation error");
+              throw es::RuntimeError("Validation error");
             }
           }
 
           if (std::string_view(foundClass->extension) != c.extension) {
-            throw std::runtime_error("Validation error");
+            throw es::RuntimeError("Validation error");
           }
 
           [&] {
@@ -1033,7 +1033,7 @@ void ValidateDb(const Header *shdr) {
               }
             }
 
-            throw std::runtime_error("Validation error");
+            throw es::RuntimeError("Validation error");
           }();
         }
       }
@@ -1045,7 +1045,7 @@ void ValidateDb(const Header *shdr) {
 
       if (found == shdr->classes.end() || found->hash != hash ||
           std::string_view(found->name) != c) {
-        throw std::runtime_error("Validation error");
+        throw es::RuntimeError("Validation error");
       }
     }
   }

@@ -392,11 +392,11 @@ static const auto makeV1 = [](auto &self, auto &main, auto v0Maker,
   main.vertices.emplace_back(std::move(vtx));
 
   /*if (skin8 && self.buffer1Stride != 8) {
-    throw std::runtime_error("Expected secondary buffer of 8 bytes!");
+    throw es::RuntimeError("Expected secondary buffer of 8 bytes!");
   }
 
   if (!skin8 && skinType && self.buffer1Stride) {
-    throw std::runtime_error("Unexpected secondary buffer for skin!");
+    throw es::RuntimeError("Unexpected secondary buffer for skin!");
   }*/
 
   if (self.buffer1Stride) {

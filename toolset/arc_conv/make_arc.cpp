@@ -136,7 +136,7 @@ struct ArcMakeContext : AppPackContext {
     numFiles++;
 
     if (numFiles > std::numeric_limits<decltype(ARC::numFiles)>::max()) {
-      throw std::runtime_error("Filecount exceeded archive limit.");
+      throw es::RuntimeError("Filecount exceeded archive limit.");
     }
 
     stream.seekg(0, std::ios::end);
@@ -163,7 +163,7 @@ struct ArcMakeContext : AppPackContext {
       deflateEnd(&infstream);
 
       if (state != Z_STREAM_END) {
-        throw std::runtime_error("Compression Error!");
+        throw es::RuntimeError("Compression Error!");
       }
 
       return infstream.total_out;

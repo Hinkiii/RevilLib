@@ -6,3 +6,5 @@ lib/
 *.bat
 __pycache__/
 .cache/
+*.ods
+*.csv

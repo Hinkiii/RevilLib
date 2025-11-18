@@ -773,7 +773,7 @@ template <class Traits> MODImpl::ptr LoadMODXD2x32(BinReaderRef_e rd) {
 
   if (header.bones > 0 && header.bones <= 0x80) {
     // UMVC3 PS3 uses unique model
-    throw std::runtime_error("Unsupported model format");
+    throw es::RuntimeError("Unsupported model format");
   }
 
   if (header.numBones) {
@@ -1139,7 +1139,7 @@ MOD::MOD(MODMaker make) {
   auto found = modMakers.find(make);
 
   if (es::IsEnd(modMakers, found)) {
-    throw std::runtime_error("Cannon find specified MODMaker instance.");
+    throw es::RuntimeError("Cannon find specified MODMaker instance.");
   }
 
   pi = found->second();

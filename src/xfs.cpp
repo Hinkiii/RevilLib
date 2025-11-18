@@ -215,7 +215,7 @@ struct XFSClassMember {
       : name(std::move(raw.memberName)), type(raw.type), flags(raw.flags),
         size(raw.memberSize->template Get<XFSSizeAndFlag::Size>()) {
     if (raw.memberSize->template Get<XFSSizeAndFlag::Unk>()) {
-      throw std::runtime_error("Some bullshit");
+      throw es::RuntimeError("Some bullshit");
     }
   }
 
@@ -285,7 +285,7 @@ struct XFSDataResource {
     rd.Read(numStrings); // ctype?
 
     if (numStrings != 2) {
-      throw std::logic_error("Unexpected number!");
+      throw es::ImplementationError("Unexpected number!");
     }
 
     rd.ReadString(type); // rtype?
@@ -591,7 +591,7 @@ void XFSImpl::ReadData(BinReaderRef_e rd, XFSClassData **root) {
         break;
       }
       case XFSType::string_: {
-        throw std::runtime_error("Array string!");
+        throw es::RuntimeError("Array string!");
       }
       case XFSType::_matrix_: {
         es::Matrix44 *adata = cType.AllocClasses<es::Matrix44>(cType.numItems);
@@ -620,7 +620,7 @@ void XFSImpl::ReadData(BinReaderRef_e rd, XFSClassData **root) {
   dataStore.emplace_back(std::move(classData));
 
   if (rd.Tell() != strBegin + chunkSize) {
-    throw std::runtime_error("Chunk size mismatch!");
+    throw es::RuntimeError("Chunk size mismatch!");
   }
 
   if (root) {
@@ -747,7 +747,7 @@ void XFSImpl::ToXML(const XFSClassData &item, pugi::xml_node node) {
         break;
       }
       default:
-        throw std::runtime_error("Unhandled xml array type");
+        throw es::RuntimeError("Unhandled xml array type");
       }
     } else if (m.numItems == 1) {
       auto cNode = node.append_child(name);
@@ -879,7 +879,7 @@ void XFSImpl::ToXML(const XFSClassData &item, pugi::xml_node node) {
         break;
       }
       default:
-        throw std::runtime_error("Unhandled xml type");
+        throw es::RuntimeError("Unhandled xml type");
       }
     }
   }
@@ -913,7 +913,7 @@ template <class PtrType> void Load(XFSImpl &main, BinReaderRef_e rd) {
                  std::make_move_iterator(layouts.end()),
                  std::back_inserter(main.rtti), [](auto &&item) {
                    if (item.info->template Get<XFSClassInfo::Unk>()) {
-                     throw std::runtime_error("Some bullshit");
+                     throw es::RuntimeError("Some bullshit");
                    }
 
                    return std::move(item);
@@ -959,7 +959,7 @@ void LoadV2(XFSImpl &main, BinReaderRef_e rd, XFSHeaderV2 &header) {
                    std::back_inserter(main.rtti),
                    [](auto &&item) { return std::move(item); });
   } else {
-    std::runtime_error("Cannot detect member padding");
+    es::RuntimeError("Cannot detect member padding");
   }
 
   rd.Seek(header.dataStart);
@@ -1008,7 +1008,7 @@ void XFSImpl::Load(BinReaderRef_e rd, bool openEnded) {
     } else if (platform == pt::PS3) {
       ::Load<uint64>(*this, rd);
     } else {
-      throw std::runtime_error("Undefined platform!");
+      throw es::RuntimeError("Undefined platform!");
     }
   }
 
@@ -1031,6 +1031,6 @@ void XFSImpl::Load(BinReaderRef_e rd, bool openEnded) {
   const size_t eof = rd.GetSize();
 
   if (!openEnded && eof != rd.Tell()) {
-    throw std::runtime_error("Unexpected eof");
+    throw es::RuntimeError("Unexpected eof");
   }
 }

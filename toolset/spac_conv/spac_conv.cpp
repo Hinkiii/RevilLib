@@ -296,7 +296,7 @@ void AppProcessFile(AppContext *ctx) {
 
           bufferIter += sizeof(WAVEGenericHeader) + gHdr.chunkSize;
         } else if (f + 1 < hdr.numFiles) {
-          throw std::runtime_error("Invalid WAVE chunk!");
+          throw es::RuntimeError("Invalid WAVE chunk!");
         } else {
           break;
         }
@@ -313,7 +313,7 @@ void AppProcessFile(AppContext *ctx) {
       size_t fwseDataSize = fwseHdr->fileSize - fwseHdr->bufferOffset;
 
       if (fwseHdr->bufferOffset != 0x400) {
-        throw std::runtime_error("Invalid FWSE header length!");
+        throw es::RuntimeError("Invalid FWSE header length!");
       }
 
       rd.Push();
@@ -362,7 +362,7 @@ void AppProcessFile(AppContext *ctx) {
 
           bufferIter += sizeof(WAVEGenericHeader) + gHdr.chunkSize;
         } else if (f + 1 < hdr.numFiles) {
-          throw std::runtime_error("Invalid WAVE chunk!");
+          throw es::RuntimeError("Invalid WAVE chunk!");
         } else {
           break;
         }
@@ -374,7 +374,7 @@ void AppProcessFile(AppContext *ctx) {
     }
 
     else {
-      throw std::runtime_error("Invalid entry format!");
+      throw es::RuntimeError("Invalid entry format!");
     }
   }
 

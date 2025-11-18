@@ -1,8 +1,8 @@
 #include "revil/hashreg.hpp"
 #include "database.hpp"
+#include "spike/except.hpp"
 #include "spike/reflect/detail/reflector_class.hpp"
 #include "spike/reflect/detail/reflector_enum.hpp"
-#include <stdexcept>
 
 extern "C" const revil::Header REDB;
 
@@ -113,7 +113,7 @@ Platforms GetPlatformSupport(std::string_view title) {
   auto found = LowerBound(title, REDB.titles);
 
   if (found == REDB.titles.end() || found->name != title) {
-    throw std::runtime_error("Coundn't find title.");
+    throw es::RuntimeError("Coundn't find title.");
   }
 
   static const auto refl = GetReflectedEnum<Platform>();
@@ -121,7 +121,8 @@ Platforms GetPlatformSupport(std::string_view title) {
   Platforms flags;
 
   for (uint32 i = 1; i < NUM_PLATFORMS; i++) {
-    if (auto plat = found->data->support.operator->()[i - 1].operator->(); plat) {
+    if (auto plat = found->data->support.operator->()[i - 1].operator->();
+        plat) {
       flags.emplace_back(Platform(refl->values[i]));
     }
   }
@@ -133,7 +134,7 @@ const TitleSupport *GetTitleSupport(std::string_view title, Platform platform) {
   auto found = LowerBound(title, REDB.titles);
 
   if (found == REDB.titles.end() || found->name != title) {
-    throw std::runtime_error("Coundn't find title.");
+    throw es::RuntimeError("Coundn't find title.");
   }
 
   if (platform == Platform::Auto) {
@@ -157,7 +158,7 @@ const TitleSupport *GetTitleSupport(std::string_view title, Platform platform) {
       if (IsPlatformBigEndian(Platform(refl->values[i])) == inputPlatformBE &&
           platforms[i - 1].varPtr) {
         if (foundSec) {
-          throw std::runtime_error(
+          throw es::RuntimeError(
               "Ambiguous title support found from fallback.");
         }
 
@@ -167,7 +168,7 @@ const TitleSupport *GetTitleSupport(std::string_view title, Platform platform) {
   }
 
   if (!foundSec) {
-    throw std::runtime_error("Title support is null.");
+    throw es::RuntimeError("Title support is null.");
   }
 
   return foundSec;

@@ -70,7 +70,7 @@ LMTAnimationInterface::Load(BinReaderRef_e rd,
   rd.Read(bufferSize);
 
   if (!bufferSize) {
-    throw std::runtime_error("Empty buffer.");
+    throw es::RuntimeError("Empty buffer.");
   }
 
   auto buff = std::make_unique<std::string>();

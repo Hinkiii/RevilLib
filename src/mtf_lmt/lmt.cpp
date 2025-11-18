@@ -16,6 +16,7 @@
 */
 
 #include "internal.hpp"
+#include "spike/except.hpp"
 #include "spike/reflect/reflector.hpp"
 
 REFLECT(CLASS(TrackMinMax), MEMBER(min), MEMBER(max));
@@ -38,11 +39,11 @@ LMT::operator uni::MotionsConst() const {
 
 void LMT::Version(LMTVersion _version, LMTArchType _arch) {
   if (!pi->masterBuffer.empty()) {
-    throw std::runtime_error("Cannot set version for read only class!");
+    throw es::RuntimeError("Cannot set version for read only class!");
   }
 
   if (!pi->storage.empty()) {
-    throw std::runtime_error("Cannot set version for already used class.");
+    throw es::RuntimeError("Cannot set version for already used class.");
   }
 
   pi->props.version = _version;
@@ -51,7 +52,7 @@ void LMT::Version(LMTVersion _version, LMTArchType _arch) {
 
 void LMT::AppendAnimation(LMTAnimation *ani) {
   if (ani && *ani != pi->props) {
-    throw std::runtime_error("Cannot append animation. Properties mismatch.");
+    throw es::RuntimeError("Cannot append animation. Properties mismatch.");
   }
 
   pi->storage.emplace_back(ani, false);
@@ -64,7 +65,7 @@ LMTAnimation *LMT::AppendAnimation() {
 
 void LMT::InsertAnimation(LMTAnimation *ani, size_t at, bool replace) {
   if (*ani != pi->props) {
-    throw std::runtime_error("Cannot append animation. Properties mismatch.");
+    throw es::RuntimeError("Cannot append animation. Properties mismatch.");
   }
 
   if (at >= pi->storage.size()) {

@@ -17,6 +17,7 @@
 
 #include "project.h"
 #include "spike/app_context.hpp"
+#include "spike/except.hpp"
 #include "spike/io/binreader_stream.hpp"
 #include "spike/io/binwritter_stream.hpp"
 #include "spike/reflect/reflector.hpp"
@@ -93,7 +94,7 @@ void AppProcessFile(AppContext *ctx) {
     sample = Decrypt(sample);
 
     if (sample.X) {
-      throw std::runtime_error("Decryption error!");
+      throw es::RuntimeError("Decryption error!");
     }
 
     rd.ReadContainer(store, numItems);
