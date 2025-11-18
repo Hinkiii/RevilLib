@@ -47,8 +47,6 @@ static AppInfo_s appInfo{
     .filters = filters,
 };
 
-static constexpr uint32 ARCCID = CompileFourCC("ARCC");
-
 AppInfo_s *AppInitModule() { return &appInfo; }
 
 auto ReadARCC(BinReaderRef_e rd, BlowfishEncoder &enc) {
@@ -131,7 +129,7 @@ void AppProcessFile(AppContext *ctx) {
       std::string_view key(ts->arc.key);
 
       if (key.empty()) {
-        throw std::runtime_error(
+        throw es::RuntimeError(
             "Encrypted archives not supported for this title");
       }
       BlowfishEncoder enc;

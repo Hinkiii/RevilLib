@@ -81,6 +81,7 @@ struct ARCExtendedFile {
 
 static constexpr uint32 ARCID = CompileFourCC("ARC");
 static constexpr uint32 CRAID = CompileFourCC("\0CRA");
+static constexpr uint32 ARCCID = CompileFourCC("ARCC");
 
 struct ARCBase {
   uint32 id = ARCID;

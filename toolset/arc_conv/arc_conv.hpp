@@ -19,9 +19,7 @@
 #include "arc.hpp"
 #include "re_common.hpp"
 #include "revil/hashreg.hpp"
-#include "zlib.h"
 #include <iomanip>
-#include <sstream>
 
 void AppAdditionalHelp(AppHelpContext *ctx, size_t indent) {
   auto &str = ctx->GetStream("titles");

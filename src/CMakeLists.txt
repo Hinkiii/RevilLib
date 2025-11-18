@@ -4,6 +4,8 @@ add_library(revil-interface INTERFACE)
 target_include_directories(revil-interface INTERFACE ../include)
 target_link_libraries(revil-interface INTERFACE spike-interface)
 
+file(GLOB ZLIB_SOURCES "${TPD_PATH}/zlib/*.c")
+
 if(NOT NO_OBJECTS)
   build_target(
     NAME
@@ -12,10 +14,13 @@ if(NOT NO_OBJECTS)
     OBJECT
     SOURCES
     ${CORE_SOURCE_FILES}
+    ${TPD_PATH}/mspack/lzxd.c
+    ${ZLIB_SOURCES}
     PROPERTIES
     POSITION_INDEPENDENT_CODE ${OBJECTS_PID}
     INCLUDES
-    ${TPD_PATH}/pvr_core
+    ${TPD_PATH}/mspack
+    ${TPD_PATH}/zlib
     LINKS
     pugixml-interface
     spike-interface
@@ -36,8 +41,11 @@ if(BUILD_SHARED_LIBS)
     SHARED
     SOURCES
     ${CORE_SOURCE_FILES}
+    ${TPD_PATH}/mspack/lzxd.c
+    ${ZLIB_SOURCES}
     INCLUDES
-    ${TPD_PATH}/pvr_core
+    ${TPD_PATH}/mspack
+    ${TPD_PATH}/zlib
     LINKS
     spike
     pugixml

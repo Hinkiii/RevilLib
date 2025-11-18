@@ -17,6 +17,7 @@
 
 #include "arc_conv.hpp"
 #include "project.h"
+#include "revil/arc.hpp"
 #include "spike/io/binreader.hpp"
 #include "spike/io/binwritter.hpp"
 #include "spike/io/stat.hpp"
@@ -148,25 +149,7 @@ struct ArcMakeContext : AppPackContext {
 
     auto CompressData = [&](auto &&buffer, int cType) {
       outBuffer.resize(std::max(buffer.size() + 0x10, size_t(0x8000)));
-      z_stream infstream;
-      infstream.zalloc = Z_NULL;
-      infstream.zfree = Z_NULL;
-      infstream.opaque = Z_NULL;
-      infstream.avail_in = buffer.size();
-      infstream.next_in = reinterpret_cast<Bytef *>(&buffer[0]);
-      infstream.avail_out = outBuffer.size();
-      infstream.next_out = reinterpret_cast<Bytef *>(&outBuffer[0]);
-
-      deflateInit2(&infstream, cType, Z_DEFLATED, ts->arc.windowSize, 8,
-                   Z_DEFAULT_STRATEGY);
-      int state = deflate(&infstream, Z_FINISH);
-      deflateEnd(&infstream);
-
-      if (state != Z_STREAM_END) {
-        throw es::RuntimeError("Compression Error!");
-      }
-
-      return infstream.total_out;
+      return revil::CompressZlib(buffer, outBuffer, ts->arc.windowSize, cType);
     };
 
     auto found = streams.find(std::this_thread::get_id());
@@ -203,7 +186,7 @@ struct ArcMakeContext : AppPackContext {
     }
 
     if (!processed && streamSize > minFileSize) {
-      compressedSize = CompressData(buffer, Z_BEST_COMPRESSION);
+      compressedSize = CompressData(buffer, 9);
 
       uint32 ratio = ((float)compressedSize / (float)streamSize) * 100;
 
@@ -221,7 +204,7 @@ struct ArcMakeContext : AppPackContext {
         }
 
         if (settings.forceZLIBHeader) {
-          compressedSize = CompressData(buffer, Z_NO_COMPRESSION);
+          compressedSize = CompressData(buffer, 0);
         } else { // compressed with failed ratio
           compressedSize = streamSize;
           streamStore.WriteBuffer(buffer.data(), compressedSize);
