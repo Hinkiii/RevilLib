@@ -61,5 +61,27 @@ build_target(
   START_YEAR
   2024)
 
+project(TEXDump)
+
+build_target(
+  NAME
+  dump_textures
+  TYPE
+  ESMODULE
+  VERSION
+  1
+  SOURCES
+  dump_textures.cpp
+  INCLUDES
+  ${CMAKE_SOURCE_DIR}/src/
+  LINKS
+  revil-interface
+  AUTHOR
+  "Lukas Cone"
+  DESCR
+  "Collect TEX info"
+  START_YEAR
+  2025)
+
 add_spike_subdir(sbk)
 add_spike_subdir(stq)
