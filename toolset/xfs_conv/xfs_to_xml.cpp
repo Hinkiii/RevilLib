@@ -42,17 +42,30 @@ AppInfo_s *AppInitModule() { return &appInfo; }
 
 void AppProcessFile(AppContext *ctx) {
   XFS xfs;
+  std::string extension = ctx->workingFile.GetExtension();
+  std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
-  try {
-    xfs.Load(ctx->GetStream());
-  } catch (const es::InvalidHeaderError &r) {
-    return;
+  if (extension == ".xml") {
+    pugi::xml_document doc;
+    if (!doc.load_file(ctx->workingFile.GetFullPath())) {
+        return;
+    }
+    
+    xfs.FromXML(doc); 
+    
+    auto &outStream = ctx->NewFile(ctx->workingFile.GetPathNoExtension()).str;
+    xfs.Save(outStream);
+  } 
+  else {
+    try {
+      xfs.Load(ctx->GetStream());
+    } catch (const es::InvalidHeaderError &r) {
+      return;
+    }
+    
+    auto &outStr = ctx->NewFile(std::string(ctx->workingFile.GetFullPath()) + ".xml").str;
+    pugi::xml_document doc;
+    xfs.ToXML(doc);
+    doc.save(outStr);
   }
-
-  auto &outStr =
-      ctx->NewFile(std::string(ctx->workingFile.GetFullPath()) + ".xml").str;
-
-  pugi::xml_document doc;
-  xfs.ToXML(doc);
-  doc.save(outStr);
 }
